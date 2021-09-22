@@ -1,0 +1,19 @@
+{:paths ["src" "resources"]
+ :deps {org.clojure/clojure {:mvn/version "1.10.3"}
+        org.graphqlize/graphqlize        {:mvn/version "0.1.0-alpha-4"}
+        hikari-cp                        {:mvn/version "2.10.0"}
+        org.postgresql/postgresql        {:mvn/version "42.2.8"}
+        org.slf4j/slf4j-simple           {:mvn/version "1.7.30"}
+        com.walmartlabs/lacinia-pedestal {:mvn/version "0.13.0-alpha-1"}}
+ :aliases
+ {:run-m {:main-opts ["-m" "app.server"]}
+  :run-x {:ns-default app.test-graphqlize
+          :exec-fn greet
+          :exec-args {:name "Clojure"}}
+  :build {:deps {io.github.seancorfield/build-clj
+                 {:git/tag "v0.3.1" :git/sha "996ddfa"}}
+          :ns-default build}
+  :test {:extra-paths ["test"]
+         :extra-deps {org.clojure/test.check {:mvn/version "1.1.0"}}}}}
+                      ;io.github.cognitect-labs/test-runner
+                      ;{:git/tag "v0.5.0" :git/sha "48c3c67"}}}}}
