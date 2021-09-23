@@ -10,7 +10,7 @@
                                       :server-name       "localhost"
                                       :port-number       5432
                                       :maximum-pool-size 1
-                                      :username          "enesj"
+                                      :username          "postgres"
                                       :password          "610Pg"}))
 
 (def lacinia-schema (l/schema db-spec))
