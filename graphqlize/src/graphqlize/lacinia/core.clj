@@ -44,6 +44,6 @@
                         :scalars (l-scalar/generate)
                         :enums (l-enum/generate heql-meta-data)
                         :input-objects (l-ip-obj/generate heql-meta-data)}]
-    (trace>> :gql-schema gql-schema)
+    ;(trace>> :gql-schema gql-schema)
     (lacinia-schema/compile
      (lacinia-util/attach-resolvers gql-schema (resolvers db-adapter)))))
