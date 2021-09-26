@@ -1,5 +1,6 @@
 (ns graphqlize.lacinia.enum
-  (:require [honeyeql.meta-data :as heql-md]))
+  (:require [honeyeql.meta-data :as heql-md]
+            [honeyeql.debug :refer [trace>> trace>]]))
 
 (defn- entity-group-by-enum [entity-meta-data attrs-md]
   (let [entity-name    (name (:entity.ident/pascal-case entity-meta-data))

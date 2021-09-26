@@ -90,6 +90,12 @@
               :from   [:rs]} :rs]]
    :select [(hsql/raw "coalesce (json_agg(\"rs\"), '[]')::character varying as result")]})
 
+(defn- result-set-hql-del [hql]
+  {:with   [[:rs hql]]
+   :from   [[{:returning [:*]
+              :from   [:rs]} :rs]]
+   :select [(hsql/raw "coalesce (json_agg(\"rs\"), '[]')::character varying as result")]})
+
 (defn- hsql-column-name [{:keys [alias function-attribute-ident key]} attr-md]
   (let [{:keys [parent]} alias
         c (->> (heql-md/attr-column-name attr-md)
@@ -126,6 +132,8 @@
 
 (defrecord PostgresAdapter [db-spec heql-config heql-meta-data]
   db/DbAdapter
+  (to-sql-raw [pg-adapter hsql]
+    (hsql/format hsql :quoting :ansi))
   (to-sql [pg-adapter hsql]
     (hsql/format (result-set-hql hsql) :quoting :ansi))
   (query [pg-adapter sql]

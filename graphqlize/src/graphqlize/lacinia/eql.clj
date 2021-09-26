@@ -19,7 +19,7 @@
 #_(eql-root-attr-ns [:public] {:Language/languageId [nil]})
 #_(eql-root-attr-ns [:person] {:PersonStateProvince/languageId [nil]})
 
-(def ^:private reserved-args #{:limit :offset :orderBy :where :groupBy})
+(def ^:private reserved-args #{:limit :offset :orderBy :where :groupBy :set})
 
 (defn- ident [root-attr-ns args]
   (->> (remove (fn [[k _]]
@@ -153,10 +153,10 @@
   (let [n (namespace prop)
         k (name prop)]
     (if-let [agg-prop (some (fn [prefix]
-                     (when (string/starts-with? k (str prefix "-"))
-                       [(keyword (string/replace-first prefix #"-of$" ""))
-                        (keyword n (string/replace-first k (re-pattern (str "^" prefix "-")) ""))])) 
-                   ["count-of" "avg-of" "sum-of" "min-of" "max-of"])]
+                              (when (string/starts-with? k (str prefix "-"))
+                                [(keyword (string/replace-first prefix #"-of$" ""))
+                                 (keyword n (string/replace-first k (re-pattern (str "^" prefix "-")) ""))]))
+                        ["count-of" "avg-of" "sum-of" "min-of" "max-of"])]
       agg-prop
       prop)))
 
@@ -184,14 +184,15 @@
 
 (defn generate [namespaces selection-tree args]
   (let [root-attr-ns (eql-root-attr-ns namespaces selection-tree)
-        ident        (ident root-attr-ns args)
-        parameters   (parameters namespaces selection-tree args)
-        ident        (if (empty? parameters)
-                       ident
-                       (list ident parameters))
-        properties   (properties namespaces selection-tree)
-        eql          [{ident properties}]]
-    (trace>> :eql eql)))
+        ident (ident root-attr-ns args)
+        parameters (parameters namespaces selection-tree args)
+        ident- (if (empty? parameters)
+                 ident
+                 (list ident parameters))
+        properties (properties namespaces selection-tree)
+        eql [{ident- properties}]]
+    (trace>> :generate [ident ">>" parameters ">>" ident-])
+    eql))
 
 #_(generate [:public] {:Course/countOfRating [nil]
                        :Course/maxOfRating   [nil]

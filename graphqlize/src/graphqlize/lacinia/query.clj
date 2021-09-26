@@ -2,7 +2,8 @@
   (:require [honeyeql.meta-data :as heql-md]
             [graphqlize.lacinia.arg :as l-arg]
             [clojure.string :as string]
-            [inflections.core :as inf]))
+            [inflections.core :as inf]
+            [honeyeql.debug :refer [trace>> trace>]]))
 
 (defn- primary-key-attrs->query-name [entity-ident-in-camel-case primary-key-attrs]
   (->> (map (comp inf/camel-case name) primary-key-attrs)
@@ -25,9 +26,42 @@
              :args    (l-arg/query-args heql-meta-data entity-meta-data :graphqlize/collection-query)
              :resolve :graphqlize/collection-query}}))
 
+(defn- entity-meta-data->collection-delete [heql-meta-data entity-meta-data]
+  (let [{:entity.ident/keys [pascal-case plural]} entity-meta-data]
+    {(keyword (str "delete_" (name plural)))
+     {:type    (list 'non-null (list 'list pascal-case))
+      :args    (l-arg/query-args heql-meta-data entity-meta-data :graphqlize/collection-query)
+      :resolve :graphqlize/collection-delete}}))
+
+
+(defn- entity-meta-data->collection-update [heql-meta-data entity-meta-data]
+  (let [{:entity.ident/keys [pascal-case plural]} entity-meta-data]
+    {(keyword (str "update_" (name plural)))
+     {:type    (list 'non-null (list 'list pascal-case))
+      :args    (l-arg/query-args heql-meta-data entity-meta-data :graphqlize/update-query)
+      :resolve :graphqlize/collection-query}}))
+
 (defn generate [heql-meta-data]
   (apply merge (map (fn [e-md]
                       (merge
-                       (entity-meta-data->query-by-primary-key heql-meta-data e-md)
+                       ;(entity-meta-data->query-by-primary-key heql-meta-data e-md)
                        (entity-meta-data->collection-query heql-meta-data e-md)))
                     (heql-md/entities heql-meta-data))))
+
+(defn generate-deletions [heql-meta-data]
+  (apply merge (map (fn [e-md]
+                      (merge
+                        (entity-meta-data->collection-delete heql-meta-data e-md)))
+                    (heql-md/entities heql-meta-data))))
+
+(defn generate-updates [heql-meta-data]
+  (apply merge (map (fn [e-md]
+                      (merge
+                        (entity-meta-data->collection-update heql-meta-data e-md)))
+                    (heql-md/entities heql-meta-data))))
+
+(defn mutations [heql-meta-data]
+  (merge (generate-deletions heql-meta-data)
+         (generate-updates heql-meta-data)))
+
+

@@ -12,7 +12,7 @@
             [graphqlize.lacinia.eql :as l-eql]
             [honeyeql.core :as heql]
             [honeyeql.db :as heql-db]
-            [honeyeql.debug :refer [trace>>]]))
+            [honeyeql.debug :refer [trace>> trace>]]))
 
 (defn- hql-resolver [db-adapter heql-query-fn]
   ^{:tag lacinia-resolve/ResolverResult}
@@ -22,10 +22,10 @@
                        heql-md/namespace-idents
                        (l-eql/generate sel-tree args))]
       (trace>> :lacinia-resolver {:selections-tree sel-tree
-                                  :args            args})
+                                  :args            args
+                                  :eql eql})
       (try
         (->> (heql-query-fn db-adapter eql)
-             ;(trace>> :resolved-value)
              lacinia-resolve/resolve-as)
         (catch Throwable e
           (trace>> :heql-error e)
@@ -33,7 +33,8 @@
 
 (defn- resolvers [db-adapter]
   {:graphqlize/query-by-primary-key (hql-resolver db-adapter heql/query-single)
-   :graphqlize/collection-query     (hql-resolver db-adapter heql/query)})
+   :graphqlize/collection-query     (hql-resolver db-adapter heql/query)
+   :graphqlize/collection-delete     (hql-resolver db-adapter heql/delete)})
 
 (defn schema [db-spec]
   (let [db-adapter     (heql-db/initialize db-spec {:attr/return-as :naming-convention/unqualified-camel-case
@@ -41,9 +42,9 @@
         heql-meta-data (:heql-meta-data db-adapter)
         gql-schema     {:objects (l-obj/generate heql-meta-data)
                         :queries (l-query/generate heql-meta-data)
+                        :mutations (l-query/mutations heql-meta-data)
                         :scalars (l-scalar/generate)
                         :enums (l-enum/generate heql-meta-data)
                         :input-objects (l-ip-obj/generate heql-meta-data)}]
-    ;(trace>> :gql-schema gql-schema)
     (lacinia-schema/compile
      (lacinia-util/attach-resolvers gql-schema (resolvers db-adapter)))))

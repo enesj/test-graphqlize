@@ -1,9 +1,11 @@
 (ns graphqlize.lacinia.object
   (:require [honeyeql.meta-data :as heql-md]
-            [graphqlize.lacinia.field :as l-field]))
+            [graphqlize.lacinia.field :as l-field]
+            [honeyeql.debug :refer [trace>> trace>]]))
 
 (defn- entity-meta-data->object [heql-meta-data entity-meta-data]
   (let [attr-idents                          (heql-md/attr-idents entity-meta-data)]
+    ;(trace>> :idents entity-meta-data)
     {(:entity.ident/pascal-case entity-meta-data)
      {:fields (apply merge (map #(l-field/generate heql-meta-data %) attr-idents))}}))
 

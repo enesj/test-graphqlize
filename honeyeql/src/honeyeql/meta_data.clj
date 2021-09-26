@@ -431,8 +431,8 @@
            (add-primary-keys-meta-data db-meta-data)
            (add-relationships-meta-data db-meta-data)
            add-many-to-many-rels-meta-data
-           add-namespaces
-           (trace>> :heql-meta-data)))))
+           add-namespaces))))
+           ;(trace>> :heql-meta-data)))))
 
 ;; Query Functions
 

@@ -1,6 +1,7 @@
 (ns graphqlize.lacinia.arg
   (:require [honeyeql.meta-data :as heql-md]
-            [graphqlize.lacinia.type :as l-type]))
+            [graphqlize.lacinia.type :as l-type]
+            [honeyeql.debug :refer [trace>> trace>]]))
 
 (defn- primary-key-attrs->args [heql-meta-data primary-key-attrs]
   (reduce (fn [args attr-ident]
@@ -36,10 +37,16 @@
                               keyword)))}})
 
 (defn- where-predicate-arg [e-md]
-  {:where {:type (-> (:entity.ident/pascal-case e-md)
-                     name
-                     (str "Predicate")
-                     keyword)}})
+       {:where {:type (-> (:entity.ident/pascal-case e-md)
+                          name
+                          (str "Predicate")
+                          keyword)}})
+
+(defn- set-update-arg [e-md]
+  {:set {:type (-> (:entity.ident/pascal-case e-md)
+                   name
+                   (str "Set")
+                   keyword)}})
 
 (defn many-field-args [heql-meta-data entity-meta-data]
   (let [default-args (merge pagination-args
@@ -58,4 +65,7 @@
                                                  (order-by-arg entity-meta-data)
                                                  (where-predicate-arg entity-meta-data)
                                                  (group-by-arg entity-meta-data))
+   (= :graphqlize/update-query query-type) (merge
+                                               (where-predicate-arg entity-meta-data)
+                                               (set-update-arg entity-meta-data))
     :else identity))

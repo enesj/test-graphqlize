@@ -1,6 +1,7 @@
 (ns graphqlize.lacinia.input-object
   (:require [honeyeql.meta-data :as heql-md]
-            [graphqlize.lacinia.type :as l-type]))
+            [graphqlize.lacinia.type :as l-type]
+            [honeyeql.debug :refer [trace>> trace>]]))
 
 (defn- comparison-input-object [lacinia-type]
   (let [between-op    (keyword (str lacinia-type "BetweenOp"))
@@ -48,6 +49,9 @@
 (defn- order-by-field [attr-md]
   {(:attr.ident/camel-case attr-md) {:type :OrderBy}})
 
+(defn- update-field [attr-md]
+  {(:attr.ident/camel-case attr-md) {:type (l-type/lacinia-type (:attr/type attr-md))}})
+
 (defn- where-predicate-field [heql-meta-data attr-md]
   (case (:attr/type attr-md)
     :attr.type/ref (let [ref-entity-ident (->> (:attr.ref/type attr-md)
@@ -63,6 +67,7 @@
   (let [entity-name                (name (:entity.ident/pascal-case entity-meta-data))
         attr-idents                (heql-md/attr-idents entity-meta-data)
         predicate-type             (keyword (str entity-name "Predicate"))
+        set-type                   (keyword (str entity-name "Set"))
         nested-predicate-type      (keyword (str entity-name "PrimitivePredicate"))
         attrs-md                   (map #(heql-md/attr-meta-data heql-meta-data %) attr-idents)
         non-relationship-attrs-md  (filter #(not= :attr.type/ref (:attr/type %)) attrs-md)
@@ -71,7 +76,10 @@
                                              (:attr.column.ref/type %)) attrs-md)
         have-predicate             (when (seq list-relationship-attrs-md)
                                      (keyword (str entity-name "HaveEnum")))]
+    ;(trace>> :input [(first (map order-by-field non-relationship-attrs-md))
+    ;                 (first (map update-field non-relationship-attrs-md))])
     {(keyword (str entity-name "OrderBy")) {:fields (apply merge (map order-by-field non-relationship-attrs-md))}
+     (keyword (str entity-name "Set"))     {:fields (apply merge (map update-field non-relationship-attrs-md))}
      predicate-type                        {:fields (apply merge
                                                            (concat
                                                             [{:and {:type (list 'list (list 'non-null predicate-type))}

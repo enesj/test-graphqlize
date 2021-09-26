@@ -6,7 +6,8 @@
             [honeysql.helpers :as hsql-helpers]
             [honeyeql.db-adapter.core :as db]
             [clojure.string :as str]
-            [honeyeql.debug :refer [trace>>]]))
+            [honeyeql.debug :refer [trace>>]]
+            [clojure.set :as set]))
 
 (def ^:no-doc default-heql-config {:attr/return-as :naming-convention/qualified-kebab-case
                                    :eql/mode       :eql.mode/lenient})
@@ -372,5 +373,62 @@
                          :key-fn #(json-key-fn return-as aggregate-attr-convention %)
                          :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
 
+(defn insert-returning [sql]
+  (let [[first second] (str/split sql #"\?\)")
+         returning "? RETURNING *)"
+         sql-new (str first returning second)]
+    sql-new))
+
+(defn delete [db-adapter eql-query]
+  (let [{:keys [heql-meta-data heql-config]} db-adapter
+        {:attr/keys [return-as aggregate-attr-convention]} heql-config
+        eql-query                            (case (:eql/mode heql-config)
+                                               :eql.mode/lenient (trace>> :transformed-eql (transform-honeyeql-queries eql-query))
+                                               :eql.mode/strict  eql-query)]
+    (map  #(transform-keys return-as %)
+          (json/read-str (->> (eql/query->ast eql-query)
+                              (trace>> :raw-eql-ast)
+                              (enrich-eql-node db-adapter)
+                              (trace>> :eql-ast)
+                              (eql->hsql db-adapter heql-meta-data)
+                              (trace>> :hsql1)
+                              (#(set/rename-keys % {:from :delete-from}))
+                              (#(dissoc % :select))
+                              (#(update-in % [:delete-from] first))
+                              (trace>> :hsql2)
+                              (db/to-sql db-adapter)
+                              (#(vector (insert-returning (first %)) (second %)))
+                              (trace>> :sql)
+                              (db/query db-adapter))
+                         :bigdec true
+                         :key-fn #(json-key-fn return-as aggregate-attr-convention %)
+                         :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
+
+(defn update [db-adapter eql-query]
+  (let [{:keys [heql-meta-data heql-config]} db-adapter
+        {:attr/keys [return-as aggregate-attr-convention]} heql-config
+        eql-query                            (case (:eql/mode heql-config)
+                                               :eql.mode/lenient (trace>> :transformed-eql (transform-honeyeql-queries eql-query))
+                                               :eql.mode/strict  eql-query)]
+    (map  #(transform-keys return-as %)
+          (json/read-str (->> (eql/query->ast eql-query)
+                              (trace>> :raw-eql-ast)
+                              (enrich-eql-node db-adapter)
+                              (trace>> :eql-ast)
+                              (eql->hsql db-adapter heql-meta-data)
+                              (trace>> :hsql1)
+                              (#(set/rename-keys % {:from :delete-from}))
+                              (#(dissoc % :select))
+                              (#(update-in % [:delete-from] first))
+                              (trace>> :hsql2)
+                              (db/to-sql db-adapter)
+                              (#(vector (insert-returning (first %)) (second %)))
+                              (trace>> :sql)
+                              (db/query db-adapter))
+                         :bigdec true
+                         :key-fn #(json-key-fn return-as aggregate-attr-convention %)
+                         :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
+
 (defn query-single [db-adapter eql-query]
   (first (query db-adapter eql-query)))
+

@@ -1,6 +1,7 @@
 (ns ^:no-doc honeyeql.db-adapter.core)
 
 (defprotocol DbAdapter
+  (to-sql-raw [db-adapter hsql])
   (to-sql [db-adapter hsql])
   (query [db-adapter sql])
   (select-clause [db-adapter heql-meta-data eql-nodes])
