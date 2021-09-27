@@ -33,13 +33,12 @@
       :args    (l-arg/query-args heql-meta-data entity-meta-data :graphqlize/collection-query)
       :resolve :graphqlize/collection-delete}}))
 
-
 (defn- entity-meta-data->collection-update [heql-meta-data entity-meta-data]
   (let [{:entity.ident/keys [pascal-case plural]} entity-meta-data]
     {(keyword (str "update_" (name plural)))
      {:type    (list 'non-null (list 'list pascal-case))
       :args    (l-arg/query-args heql-meta-data entity-meta-data :graphqlize/update-query)
-      :resolve :graphqlize/collection-query}}))
+      :resolve :graphqlize/collection-update}}))
 
 (defn generate [heql-meta-data]
   (apply merge (map (fn [e-md]

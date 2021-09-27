@@ -7,7 +7,8 @@
             [honeyeql.db-adapter.core :as db]
             [clojure.string :as str]
             [honeyeql.debug :refer [trace>>]]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [honeyeql.debug :refer [trace>> trace>]]))
 
 (def ^:no-doc default-heql-config {:attr/return-as :naming-convention/qualified-kebab-case
                                    :eql/mode       :eql.mode/lenient})
@@ -82,7 +83,8 @@
       (keyword (str assoc-table-alias "." (heql-md/attr-column-name heql-meta-data right-ident)))
       (keyword (str (:self alias) "." (heql-md/attr-column-name heql-meta-data right)))]]))
 
-(defmulti ^:no-doc eql->hsql (fn [db-adapter heql-meta-data eql-node] (find-join-type heql-meta-data eql-node)))
+(defmulti ^:no-doc eql->hsql (fn [db-adapter heql-meta-data eql-node]
+                               (find-join-type heql-meta-data eql-node)))
 
 (defmethod ^{:private true} eql->hsql :root [db-adapter heql-meta-data eql-node]
   (eql->hsql db-adapter heql-meta-data (first (:children eql-node))))
@@ -202,10 +204,12 @@
   (apply hsql-helpers/group hsql (map #(hsql-column db-adapter % eql-node true) clause)))
 
 (defn- apply-params [db-adapter hsql eql-node]
-  (let [{:keys [limit offset order-by where group-by]} (:params eql-node)]
+  (let [{:keys [limit offset order-by where group-by set returning]} (:params eql-node)]
     (cond-> hsql
       limit  (assoc :limit limit)
       offset (assoc :offset offset)
+      set (assoc :set set)
+      returning (assoc :returning returning)
       order-by (apply-order-by db-adapter order-by eql-node)
       where (apply-where db-adapter where eql-node)
       group-by (apply-group-by db-adapter group-by eql-node)
@@ -374,8 +378,8 @@
                          :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
 
 (defn insert-returning [sql]
-  (let [[first second] (str/split sql #"\?\)")
-         returning "? RETURNING *)"
+  (let [[first second] (str/split sql #"= \?\)|= \? \)" 2)
+         returning "= ? RETURNING *)"
          sql-new (str first returning second)]
     sql-new))
 
@@ -416,13 +420,14 @@
                               (enrich-eql-node db-adapter)
                               (trace>> :eql-ast)
                               (eql->hsql db-adapter heql-meta-data)
-                              (trace>> :hsql1)
-                              (#(set/rename-keys % {:from :delete-from}))
+                              (trace>> :hsql11)
+                              (#(set/rename-keys % {:from :update}))
+                              ;(#(set/rename-keys % {:select :returning}))
                               (#(dissoc % :select))
-                              (#(update-in % [:delete-from] first))
-                              (trace>> :hsql2)
+                              (#(update-in % [:update] first))
+                              (trace>> :hsql21)
                               (db/to-sql db-adapter)
-                              (#(vector (insert-returning (first %)) (second %)))
+                              (#(into (vector (insert-returning (first %))) (rest %)))
                               (trace>> :sql)
                               (db/query db-adapter))
                          :bigdec true
