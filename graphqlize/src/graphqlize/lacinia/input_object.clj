@@ -50,6 +50,7 @@
   {(:attr.ident/camel-case attr-md) {:type :OrderBy}})
 
 (defn- lacina-field-type [attr-md]
+  (trace>> :attr-md attr-md)
   {(:attr.ident/camel-case attr-md) {:type (l-type/lacinia-type (:attr/type attr-md))}})
 
 

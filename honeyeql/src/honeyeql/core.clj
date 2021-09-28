@@ -358,11 +358,12 @@
 (defn query [db-adapter eql-query]
   (let [{:keys [heql-meta-data heql-config]} db-adapter
         {:attr/keys [return-as aggregate-attr-convention]} heql-config
-        eql-query                            (case (:eql/mode heql-config)
-                                               :eql.mode/lenient (trace>> :transformed-eql (transform-honeyeql-queries eql-query))
-                                               :eql.mode/strict  eql-query)]
+        eql-query- (case (:eql/mode heql-config)
+                     :eql.mode/lenient (trace>> :transformed-eql (transform-honeyeql-queries eql-query))
+                     :eql.mode/strict eql-query)]
+    (trace>> :eql-query [eql-query- ">> :" eql-query- ">> :" (:eql/mode heql-config)])
     (map  #(transform-keys return-as %)
-          (json/read-str (->> (eql/query->ast eql-query)
+          (json/read-str (->> (eql/query->ast eql-query-)
                               (trace>> :raw-eql-ast)
                               (enrich-eql-node db-adapter)
                               (trace>> :eql-ast)
@@ -439,12 +440,21 @@
                          :key-fn #(json-key-fn return-as aggregate-attr-convention %)
                          :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
 
+(defn hyphenate [values]
+  (let [hyphenate- #(keyword (inf/hyphenate (name %)))]
+    (trace>> :values values)
+    (->> (map #(hash-map (hyphenate- (key %)) (val %)) values)
+         (apply merge))))
+
+
+
 (defn insert [db-adapter eql-query]
   (let [{:keys [heql-meta-data heql-config]} db-adapter
         {:attr/keys [return-as aggregate-attr-convention]} heql-config
-        eql-query                            (case (:eql/mode heql-config)
-                                               :eql.mode/lenient (trace>> :transformed-eql (transform-honeyeql-queries eql-query))
-                                               :eql.mode/strict  eql-query)]
+        eql-query- (case (:eql/mode heql-config)
+                     :eql.mode/lenient (trace>> :transformed-eql (transform-honeyeql-queries eql-query))
+                     :eql.mode/strict eql-query)]
+    ;(trace>> :eql-query [db-adapter])
     (map  #(transform-keys return-as %)
           (json/read-str (->> (eql/query->ast eql-query)
                               (trace>> :raw-eql-ast)
@@ -452,12 +462,10 @@
                               (trace>> :eql-ast)
                               (eql->hsql db-adapter heql-meta-data)
                               (trace>> :hsql11)
-
                               (#(set/rename-keys % {:from :insert-into}))
-                              ;(#(set/rename-keys % {:select :returning}))
                               (#(dissoc % :select))
                               (#(update-in % [:insert-into] ffirst))
-                              (#(update-in % [:values] (fn [x] (vector x))))
+                              (#(update-in % [:values] (fn [x] (vector (hyphenate x)))))
                               (trace>> :hsql21)
                               (db/to-sql db-adapter)
                               (trace>> :sql1)
