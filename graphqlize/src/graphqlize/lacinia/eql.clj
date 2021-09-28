@@ -19,7 +19,7 @@
 #_(eql-root-attr-ns [:public] {:Language/languageId [nil]})
 #_(eql-root-attr-ns [:person] {:PersonStateProvince/languageId [nil]})
 
-(def ^:private reserved-args #{:limit :offset :orderBy :where :groupBy :set})
+(def ^:private reserved-args #{:limit :offset :orderBy :where :groupBy :set :values})
 
 (defn- ident [root-attr-ns args]
   (->> (remove (fn [[k _]]

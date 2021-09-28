@@ -35,7 +35,8 @@
   {:graphqlize/query-by-primary-key (hql-resolver db-adapter heql/query-single)
    :graphqlize/collection-query     (hql-resolver db-adapter heql/query)
    :graphqlize/collection-delete     (hql-resolver db-adapter heql/delete)
-   :graphqlize/collection-update    (hql-resolver db-adapter heql/update)})
+   :graphqlize/collection-update    (hql-resolver db-adapter heql/update)
+   :graphqlize/collection-insert    (hql-resolver db-adapter heql/insert)})
 
 (defn schema [db-spec]
   (let [db-adapter     (heql-db/initialize db-spec {:attr/return-as :naming-convention/unqualified-camel-case

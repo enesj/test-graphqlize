@@ -48,6 +48,12 @@
                    (str "Set")
                    keyword)}})
 
+(defn- values-insert-arg [e-md]
+  {:values {:type (-> (:entity.ident/pascal-case e-md)
+                    name
+                    (str "Values")
+                    keyword)}})
+
 (defn many-field-args [heql-meta-data entity-meta-data]
   (let [default-args (merge pagination-args
                             (where-predicate-arg entity-meta-data)
@@ -68,4 +74,7 @@
    (= :graphqlize/update-query query-type) (merge
                                                (where-predicate-arg entity-meta-data)
                                                (set-update-arg entity-meta-data))
+   (= :graphqlize/insert-query query-type) (merge
+                                             ;(where-predicate-arg entity-meta-data)
+                                             (values-insert-arg entity-meta-data))
     :else identity))

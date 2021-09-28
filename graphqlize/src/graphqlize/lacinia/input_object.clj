@@ -49,8 +49,9 @@
 (defn- order-by-field [attr-md]
   {(:attr.ident/camel-case attr-md) {:type :OrderBy}})
 
-(defn- update-field [attr-md]
+(defn- lacina-field-type [attr-md]
   {(:attr.ident/camel-case attr-md) {:type (l-type/lacinia-type (:attr/type attr-md))}})
+
 
 (defn- where-predicate-field [heql-meta-data attr-md]
   (case (:attr/type attr-md)
@@ -79,7 +80,8 @@
     ;(trace>> :input [(first (map order-by-field non-relationship-attrs-md))
     ;                 (first (map update-field non-relationship-attrs-md))])
     {(keyword (str entity-name "OrderBy")) {:fields (apply merge (map order-by-field non-relationship-attrs-md))}
-     (keyword (str entity-name "Set"))     {:fields (apply merge (map update-field non-relationship-attrs-md))}
+     (keyword (str entity-name "Set"))     {:fields (apply merge (map lacina-field-type non-relationship-attrs-md))}
+     (keyword (str entity-name "Values"))     {:fields (apply merge (map lacina-field-type non-relationship-attrs-md))}
      predicate-type                        {:fields (apply merge
                                                            (concat
                                                             [{:and {:type (list 'list (list 'non-null predicate-type))}

@@ -204,12 +204,12 @@
   (apply hsql-helpers/group hsql (map #(hsql-column db-adapter % eql-node true) clause)))
 
 (defn- apply-params [db-adapter hsql eql-node]
-  (let [{:keys [limit offset order-by where group-by set returning]} (:params eql-node)]
+  (let [{:keys [limit offset order-by where group-by set values]} (:params eql-node)]
     (cond-> hsql
       limit  (assoc :limit limit)
       offset (assoc :offset offset)
       set (assoc :set set)
-      returning (assoc :returning returning)
+      values (assoc :values values)
       order-by (apply-order-by db-adapter order-by eql-node)
       where (apply-where db-adapter where eql-node)
       group-by (apply-group-by db-adapter group-by eql-node)
@@ -283,8 +283,6 @@
 (comment
   (json-key-fn a c k)
   (first nil))
-
-
 
 (defn- json-value-fn [db-adapter attribute-return-as json-key json-value]
   (if (= :naming-convention/qualified-kebab-case attribute-return-as)
@@ -377,10 +375,18 @@
                          :key-fn #(json-key-fn return-as aggregate-attr-convention %)
                          :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
 
-(defn insert-returning [sql]
-  (let [[first second] (str/split sql #"= \?\)|= \? \)" 2)
-         returning "= ? RETURNING *)"
-         sql-new (str first returning second)]
+(defn insert-returning [sql query-type]
+  (let [regex (case query-type
+                :delete #"\?\)"
+                :update #"\? \)"
+                :insert #"\?\)\)")
+        returning (case query-type
+                    :delete "? RETURNING *)"
+                    :update "? RETURNING *)"
+                    :insert "? ) RETURNING *)")
+
+        [first second] (str/split sql regex 2)
+        sql-new (str first returning second)]
     sql-new))
 
 (defn delete [db-adapter eql-query]
@@ -401,7 +407,7 @@
                               (#(update-in % [:delete-from] first))
                               (trace>> :hsql2)
                               (db/to-sql db-adapter)
-                              (#(vector (insert-returning (first %)) (second %)))
+                              (#(vector (insert-returning (first %) :delete) (second %)))
                               (trace>> :sql)
                               (db/query db-adapter))
                          :bigdec true
@@ -422,13 +428,41 @@
                               (eql->hsql db-adapter heql-meta-data)
                               (trace>> :hsql11)
                               (#(set/rename-keys % {:from :update}))
-                              ;(#(set/rename-keys % {:select :returning}))
                               (#(dissoc % :select))
                               (#(update-in % [:update] first))
                               (trace>> :hsql21)
                               (db/to-sql db-adapter)
-                              (#(into (vector (insert-returning (first %))) (rest %)))
+                              (#(into (vector (insert-returning (first %) :update)) (rest %)))
                               (trace>> :sql)
+                              (db/query db-adapter))
+                         :bigdec true
+                         :key-fn #(json-key-fn return-as aggregate-attr-convention %)
+                         :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
+
+(defn insert [db-adapter eql-query]
+  (let [{:keys [heql-meta-data heql-config]} db-adapter
+        {:attr/keys [return-as aggregate-attr-convention]} heql-config
+        eql-query                            (case (:eql/mode heql-config)
+                                               :eql.mode/lenient (trace>> :transformed-eql (transform-honeyeql-queries eql-query))
+                                               :eql.mode/strict  eql-query)]
+    (map  #(transform-keys return-as %)
+          (json/read-str (->> (eql/query->ast eql-query)
+                              (trace>> :raw-eql-ast)
+                              (enrich-eql-node db-adapter)
+                              (trace>> :eql-ast)
+                              (eql->hsql db-adapter heql-meta-data)
+                              (trace>> :hsql11)
+
+                              (#(set/rename-keys % {:from :insert-into}))
+                              ;(#(set/rename-keys % {:select :returning}))
+                              (#(dissoc % :select))
+                              (#(update-in % [:insert-into] ffirst))
+                              (#(update-in % [:values] (fn [x] (vector x))))
+                              (trace>> :hsql21)
+                              (db/to-sql db-adapter)
+                              (trace>> :sql1)
+                              (#(into (vector (insert-returning (first %) :insert)) (rest %)))
+                              (trace>> :sql2)
                               (db/query db-adapter))
                          :bigdec true
                          :key-fn #(json-key-fn return-as aggregate-attr-convention %)

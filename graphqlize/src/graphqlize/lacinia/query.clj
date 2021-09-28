@@ -40,6 +40,13 @@
       :args    (l-arg/query-args heql-meta-data entity-meta-data :graphqlize/update-query)
       :resolve :graphqlize/collection-update}}))
 
+(defn- entity-meta-data->collection-insert [heql-meta-data entity-meta-data]
+  (let [{:entity.ident/keys [pascal-case plural]} entity-meta-data]
+    {(keyword (str "insert_" (name plural)))
+     {:type    (list 'non-null (list 'list pascal-case))
+      :args    (l-arg/query-args heql-meta-data entity-meta-data :graphqlize/insert-query)
+      :resolve :graphqlize/collection-insert}}))
+
 (defn generate [heql-meta-data]
   (apply merge (map (fn [e-md]
                       (merge
@@ -59,8 +66,16 @@
                         (entity-meta-data->collection-update heql-meta-data e-md)))
                     (heql-md/entities heql-meta-data))))
 
+(defn generate-inserts [heql-meta-data]
+  (apply merge (map (fn [e-md]
+                      (merge
+                        (entity-meta-data->collection-insert heql-meta-data e-md)))
+                 (heql-md/entities heql-meta-data))))
+
 (defn mutations [heql-meta-data]
   (merge (generate-deletions heql-meta-data)
-         (generate-updates heql-meta-data)))
+         (generate-updates heql-meta-data)
+         (generate-inserts heql-meta-data)))
+
 
 
