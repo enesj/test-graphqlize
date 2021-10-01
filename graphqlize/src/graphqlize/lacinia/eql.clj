@@ -191,7 +191,7 @@
                  (list ident parameters))
         properties (properties namespaces selection-tree)
         eql [{ident- properties}]]
-    (trace>> :generate [ident ">>" parameters ">>" ident-])
+    (trace>> :generate [root-attr-ns ">>" args ">>" ident ">>" parameters ">>" ident-])
     eql))
 
 #_(generate [:public] {:Course/countOfRating [nil]
