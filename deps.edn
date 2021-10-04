@@ -1,12 +1,14 @@
 {:paths ["src" "resources" "graphqlize" "honeyql"]
  :deps {org.clojure/clojure {:mvn/version "1.10.3"}
-        ;org.graphqlize/graphqlize        {:mvn/version "0.1.0-alpha-4"}
-        graphqlize/graphqlize            {:local/root                      "./graphqlize"}
+        graphqlize/graphqlize            {:local/root  "./graphqlize"}
         hikari-cp                        {:mvn/version "2.10.0"}
         org.postgresql/postgresql        {:mvn/version "42.2.8"}
         org.slf4j/slf4j-simple           {:mvn/version "1.7.30"}
         com.walmartlabs/lacinia-pedestal {:mvn/version "0.13.0-alpha-1"}
+        com.github.seancorfield/next.jdbc {:mvn/version "1.2.724"}
+        com.github.seancorfield/honeysql {:mvn/version "2.0.813"}
         mount/mount                      {:mvn/version "0.1.16"}}
+
  :aliases
  {:run-m {:main-opts ["-m" "app.server"]}
   :run-x {:ns-default app.test-graphqlize

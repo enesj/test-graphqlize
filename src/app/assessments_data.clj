@@ -1,8 +1,10 @@
 (ns app.assessments-data
   (:require [clojure.string :as str]
-            [honeysql.core :as sql]
             [inflections.core :as inf]
-            [honeysql.helpers :refer :all :as h]))
+            [honey.sql  :as sql]
+            [honey.sql.helpers :refer :all :as h]
+            [app.server :refer [db-spec]]
+            [next.jdbc :as jdbc]))
 
 
 (def domains-text ["Plan&Organize Define a strategic IT plan that satisfies the business requirement for IT of sustaining or  extending the business strategy and governance requirements whilst being transparent about benefits, costs and risks  "  "Acquire&Implement Identify automated solutions that satisfies the business requirement for IT of translating  business functional and control requirements into an effective and efficient design of automated solutions "  "Distribute&Support-1 Define and manage service levels that satisfies the business requirement for IT of ensuring  the alignment of key IT services with the business strategy  "  "Distribute&Support-2...part 2"  "Monitor&Evaluate Monitor and evaluate IT performance that satisfies the business requirement for IT of  transparency and understanding of IT cost, benefits, strategy, policies and service levels in accordance with governance  requirements  "])
@@ -20,9 +22,9 @@
 
 (def topic-domains {:1 0
                     :2 10
-                    :3 16
-                    :4 22
-                    :5 25})
+                    :3 17
+                    :4 24
+                    :5 30})
 
 (def topics
   (->> (map-indexed (fn [i v]
@@ -51,7 +53,7 @@
            (->> (str/split v #"  ")
                 (#(hash-map :topic-id (Integer. (second %))
                             :question-id  (inc i)
-                            :type (first %)
+                            :question-type [:cast (first %) :question-type]
                             :text (nth % 2)))))
                             ;:answers (->> (drop 4 %)
                             ;              (map-indexed (fn [idx q] (hash-map :id (keyword (str (second %) "."  (nth % 2) "." i "." (str idx)))
@@ -66,13 +68,17 @@
   (sql/format)))
 
 
+(defn exec-sql [entity]
+  (with-open [con (jdbc/get-connection db-spec)]
+   (jdbc/execute! con (make-sql entity))))
 
-(defn modify-sql [entity]
-  (let [sql (make-sql entity)
-        sql- (str (first (str/split (first sql) #"VALUES \(" 2)) " VALUES")
-        ;_ (tap> (rest sql))
-        values (partition 4 (rest sql))]
-    [sql- values]))
+
+;(defn modify-sql [entity]
+;  (let [sql (make-sql entity)
+;        sql- (str (first (str/split (first sql) #"VALUES \(" 2)) " VALUES")
+;        ;_ (tap> (rest sql))
+;        values (partition 4 (rest sql))]
+;    [sql- values]))
 
 (comment
   INSERT INTO domain (description, name, domain_id) VALUES

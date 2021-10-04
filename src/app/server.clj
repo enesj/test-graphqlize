@@ -10,7 +10,7 @@
     [vlaaad.reveal :as reveal]))
 
 (def db-spec (hikari/make-datasource {:adapter           "postgresql"
-                                      :database-name     "postgres"
+                                      :database-name     "assessments"
                                       :server-name       "localhost"
                                       :port-number       5432
                                       :maximum-pool-size 1
@@ -19,10 +19,13 @@
 
 (def lacinia-schema (l/schema db-spec))
 
-(defn service [] (assoc
+(defn service [] (->
                    (lacinia-pedestal/service-map lacinia-schema {:graphiql true
                                                                  :port     8080})
-                   ::http/resource-path "/static"))
+                   (assoc ::http/resource-path "/static")
+                   (assoc ::http/allowed-origins {:creds true
+                                                  :allowed-origins ["http://localhost:3000"
+                                                                    "http://localhost:8888"]})))
 
 (defn serve-gql
   []
