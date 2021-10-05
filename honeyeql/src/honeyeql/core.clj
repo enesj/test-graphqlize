@@ -379,7 +379,7 @@
 (defn insert-returning [sql query-type]
   (let [regex (case query-type
                 :delete #"\?\)"
-                :update #"\? \)"
+                :update #"\?\)"
                 :insert #"\?\)\)")
         returning (case query-type
                     :delete "? RETURNING *)"
@@ -415,6 +415,12 @@
                          :key-fn #(json-key-fn return-as aggregate-attr-convention %)
                          :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
 
+(defn hyphenate [values]
+  (let [hyphenate- #(keyword (inf/hyphenate (name %)))]
+    (trace>> :values values)
+    (->> (map #(hash-map (hyphenate- (key %)) (val %)) values)
+         (apply merge))))
+
 (defn update [db-adapter eql-query]
   (let [{:keys [heql-meta-data heql-config]} db-adapter
         {:attr/keys [return-as aggregate-attr-convention]} heql-config
@@ -431,6 +437,7 @@
                               (#(set/rename-keys % {:from :update}))
                               (#(dissoc % :select))
                               (#(update-in % [:update] first))
+                              (#(update-in % [:set] (fn [x] (hyphenate x))))
                               (trace>> :hsql21)
                               (db/to-sql db-adapter)
                               (#(into (vector (insert-returning (first %) :update)) (rest %)))
@@ -439,12 +446,6 @@
                          :bigdec true
                          :key-fn #(json-key-fn return-as aggregate-attr-convention %)
                          :value-fn #(json-value-fn db-adapter return-as %1 %2)))))
-
-(defn hyphenate [values]
-  (let [hyphenate- #(keyword (inf/hyphenate (name %)))]
-    (trace>> :values values)
-    (->> (map #(hash-map (hyphenate- (key %)) (val %)) values)
-         (apply merge))))
 
 
 

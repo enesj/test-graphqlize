@@ -25,7 +25,7 @@
                    (assoc ::http/resource-path "/static")
                    (assoc ::http/allowed-origins {:creds true
                                                   :allowed-origins ["http://localhost:3000"
-                                                                    "http://localhost:8888"]})))
+                                                                    "http://localhost:8080"]})))
 
 (defn serve-gql
   []
