@@ -499,7 +499,7 @@
     (when x
       (parse-fn x))))
 
-(defn coerce-attr-value [db-adapter attr-ident value]
+(defn coerce-attr-value [db-adapter attr-ident value call]
   (let [heql-meta-data (:heql-meta-data db-adapter)
         attr-md        (try
                          (attr-meta-data heql-meta-data attr-ident)
@@ -507,6 +507,7 @@
                            (if (and (= :heql.exception/attr-not-found (:type (ex-data ex))))
                              {:attr/type :attr.type/unknown}
                              (throw ex))))]
+    (trace>> ::attr-type [(:attr/type attr-md) attr-md value call])
     (case (:attr/type attr-md)
       :attr.type/uuid (coerce uuid? #(java.util.UUID/fromString %) value)
       :attr.type/date (coerce local-date? #(LocalDate/parse %) value)
@@ -518,6 +519,9 @@
       :attr.type/ref (if (and (= :attr.ref.cardinality/many (:attr.ref/cardinality attr-md)) (nil? value))
                        []
                        value)
+      :attr.type/unknown (if (= call :5)
+                           [:cast value (keyword (:attr.column/db-type attr-md))]
+                           [:cast value (keyword (:attr.column/db-type attr-md))])
       value)))
 
 (defn db-product-name [heql-meta-data]

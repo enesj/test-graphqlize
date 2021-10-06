@@ -1,18 +1,18 @@
 (ns graphqlize.lacinia.core
-  (:require [honeyeql.meta-data :as heql-md]
-            [com.walmartlabs.lacinia.schema :as lacinia-schema]
+  (:require [com.walmartlabs.lacinia.executor :as executor]
             [com.walmartlabs.lacinia.resolve :as lacinia-resolve]
-            [com.walmartlabs.lacinia.executor :as executor]
+            [com.walmartlabs.lacinia.schema :as lacinia-schema]
             [com.walmartlabs.lacinia.util :as lacinia-util]
+            [graphqlize.lacinia.enum :as l-enum]
+            [graphqlize.lacinia.eql :as l-eql]
+            [graphqlize.lacinia.input-object :as l-ip-obj]
             [graphqlize.lacinia.object :as l-obj]
             [graphqlize.lacinia.query :as l-query]
             [graphqlize.lacinia.scalar :as l-scalar]
-            [graphqlize.lacinia.enum :as l-enum]
-            [graphqlize.lacinia.input-object :as l-ip-obj]
-            [graphqlize.lacinia.eql :as l-eql]
             [honeyeql.core :as heql]
             [honeyeql.db :as heql-db]
-            [honeyeql.debug :refer [trace>> trace>]]))
+            [honeyeql.debug :refer [trace> trace>>]]
+            [honeyeql.meta-data :as heql-md]))
 
 (defn- hql-resolver [db-adapter heql-query-fn]
   ^{:tag lacinia-resolve/ResolverResult}

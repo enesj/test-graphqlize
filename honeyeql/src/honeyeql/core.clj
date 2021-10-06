@@ -92,7 +92,7 @@
 (defn- eql-ident->hsql-predicate [db-adapter [attr-ident value] alias]
   (let [heql-meta-data (:heql-meta-data db-adapter)
         attr-col-name  (heql-md/attr-column-name heql-meta-data attr-ident)
-        attr-value     (heql-md/coerce-attr-value db-adapter attr-ident value)]
+        attr-value     (heql-md/coerce-attr-value db-adapter attr-ident value :1)]
     [:= (keyword (str (:self alias) "." attr-col-name)) attr-value]))
 
 (defn- eql-ident-key->hsql-predicate [db-adapter eql-ident-key alias]
@@ -134,10 +134,10 @@
   (let [[op col v1 v2] clause
         hsql-col       (hsql-column db-adapter col eql-node)]
     (case op
-      (:in :not-in) [op hsql-col (map #(heql-md/coerce-attr-value db-adapter col %) v1)]
+      (:in :not-in) [op hsql-col (map #(heql-md/coerce-attr-value db-adapter col % :2) v1)]
       (if v2
-        [op hsql-col (heql-md/coerce-attr-value db-adapter col v1) (heql-md/coerce-attr-value db-adapter col v2)]
-        [op hsql-col (heql-md/coerce-attr-value db-adapter col v1)]))))
+        [op hsql-col (heql-md/coerce-attr-value db-adapter col v1 :3) (heql-md/coerce-attr-value db-adapter col v2 :3)]
+        [op hsql-col (heql-md/coerce-attr-value db-adapter col v1 :4)]))))
 
 (defn- hsql-join-predicate [db-adapter eql-node join-attr-md self-alias]
   (let [heql-meta-data      (:heql-meta-data db-adapter)
@@ -286,8 +286,8 @@
 
 (defn- json-value-fn [db-adapter attribute-return-as json-key json-value]
   (if (= :naming-convention/qualified-kebab-case attribute-return-as)
-    (heql-md/coerce-attr-value db-adapter json-key json-value)
-    (heql-md/coerce-attr-value db-adapter (first json-key) json-value)))
+    (heql-md/coerce-attr-value db-adapter json-key json-value :5)
+    (heql-md/coerce-attr-value db-adapter (first json-key) json-value :5)))
 
 (defn- transform-keys [attribute-return-as return-value]
   (if (= :naming-convention/qualified-kebab-case attribute-return-as)

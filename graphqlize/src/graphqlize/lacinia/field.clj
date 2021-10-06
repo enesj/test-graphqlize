@@ -34,6 +34,7 @@
                                    {:type decimal-type}
                                    {:type float-type})
                          {:type field-type }))) {} prefixes))))
+
 #_ (into {} [[:a 1] [:b 2]])
 #_ (aggregate-fields {:attr/type :attr.type/integer
                       :attr.ident/camel-case :rating})
