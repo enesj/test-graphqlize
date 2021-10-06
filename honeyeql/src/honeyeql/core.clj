@@ -1,14 +1,14 @@
 (ns honeyeql.core
-  (:require [edn-query-language.core :as eql]
-            [honeyeql.meta-data :as heql-md]
-            [clojure.data.json :as json]
-            [inflections.core :as inf]
-            [honeysql.helpers :as hsql-helpers]
-            [honeyeql.db-adapter.core :as db]
-            [clojure.string :as str]
-            [honeyeql.debug :refer [trace>>]]
+  (:require [clojure.data.json :as json]
             [clojure.set :as set]
-            [honeyeql.debug :refer [trace>> trace>]]))
+            [clojure.string :as str]
+            [edn-query-language.core :as eql]
+            [honeyeql.db-adapter.core :as db]
+            [honeyeql.debug :refer [trace> trace>>]]
+            [honeyeql.meta-data :as heql-md]
+            [honeysql.helpers :as hsql-helpers]
+            [honey.sql :as sql]
+            [inflections.core :as inf]))
 
 (def ^:no-doc default-heql-config {:attr/return-as :naming-convention/qualified-kebab-case
                                    :eql/mode       :eql.mode/lenient})
@@ -405,10 +405,11 @@
                               (trace>> :hsql1)
                               (#(set/rename-keys % {:from :delete-from}))
                               (#(dissoc % :select))
+                              (#(assoc % :returning [:*]))
                               (#(update-in % [:delete-from] first))
                               (trace>> :hsql2)
                               (db/to-sql db-adapter)
-                              (#(vector (insert-returning (first %) :delete) (second %)))
+                              ;(#(vector (insert-returning (first %) :delete) (second %)))
                               (trace>> :sql)
                               (db/query db-adapter))
                          :bigdec true
@@ -436,11 +437,11 @@
                               (trace>> :hsql11)
                               (#(set/rename-keys % {:from :update}))
                               (#(dissoc % :select))
+                              (#(assoc % :returning [:*]))
                               (#(update-in % [:update] first))
                               (#(update-in % [:set] (fn [x] (hyphenate x))))
                               (trace>> :hsql21)
                               (db/to-sql db-adapter)
-                              (#(into (vector (insert-returning (first %) :update)) (rest %)))
                               (trace>> :sql)
                               (db/query db-adapter))
                          :bigdec true
@@ -465,12 +466,13 @@
                               (trace>> :hsql11)
                               (#(set/rename-keys % {:from :insert-into}))
                               (#(dissoc % :select))
+                              (#(assoc % :returning [:*]))
                               (#(update-in % [:insert-into] ffirst))
                               (#(update-in % [:values] (fn [x] (vector (hyphenate x)))))
                               (trace>> :hsql21)
                               (db/to-sql db-adapter)
                               (trace>> :sql1)
-                              (#(into (vector (insert-returning (first %) :insert)) (rest %)))
+                              ;(#(into (vector (insert-returning (first %) :insert)) (rest %)))
                               (trace>> :sql2)
                               (db/query db-adapter))
                          :bigdec true

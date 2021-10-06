@@ -4,4 +4,5 @@
          inflections                       {:mvn/version "0.13.2"}
          edn-query-language/eql            {:mvn/version "0.0.9"}
          honeysql/honeysql                 {:mvn/version "1.0.461"}
+         com.github.seancorfield/honeysql {:mvn/version "2.0.813"}
          org.clojure/data.json             {:mvn/version "1.0.0"}}}

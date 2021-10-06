@@ -4,7 +4,9 @@
             [honeysql.format :as fmt]
             [honeysql.core :as hsql]
             [honeyeql.db-adapter.core :as db]
+            [honey.sql :as sql]
             [next.jdbc.sql :as jdbc]
+            [honeyeql.debug :refer [trace> trace>>]]
             [clojure.string :as string])
   (:import [java.time LocalDateTime]
            [java.time.temporal ChronoField]
@@ -88,13 +90,7 @@
   {:with   [[:rs hql]]
    :from   [[{:select [:*]
               :from   [:rs]} :rs]]
-   :select [(hsql/raw "coalesce (json_agg(\"rs\"), '[]')::character varying as result")]})
-
-(defn- result-set-hql-del [hql]
-  {:with   [[:rs hql]]
-   :from   [[{:returning [:*]
-              :from   [:rs]} :rs]]
-   :select [(hsql/raw "coalesce (json_agg(\"rs\"), '[]')::character varying as result")]})
+   :select [[[:raw "coalesce (json_agg(\"rs\"), '[]')::character varying as result"]]]})
 
 (defn- hsql-column-name [{:keys [alias function-attribute-ident key]} attr-md]
   (let [{:keys [parent]} alias
@@ -135,7 +131,7 @@
   (to-sql-raw [pg-adapter hsql]
     (hsql/format hsql :quoting :ansi))
   (to-sql [pg-adapter hsql]
-    (hsql/format (result-set-hql hsql) :quoting :ansi))
+    (sql/format (result-set-hql hsql) :quoting :ansi))
   (query [pg-adapter sql]
          (-> (jdbc/query (:db-spec pg-adapter) sql)
              first
