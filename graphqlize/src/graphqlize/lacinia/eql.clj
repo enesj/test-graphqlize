@@ -43,6 +43,15 @@
                 string/lower-case
                 keyword)])) param))
 
+(defn- eqlify-set-param [namespaces selection-tree param]
+  (trace>> :param [param (eql-root-attr-ns namespaces selection-tree)])
+  (mapv (fn [[k v]]
+          (let [root-ns (eql-root-attr-ns namespaces selection-tree)]
+            [(->> (name k)
+               inf/hyphenate
+               (keyword root-ns))
+             (name v)])) param))
+
 #_(eqlify-order-by-param [:public] {:City/city [nil]}
                          {:firstName :ASC
                           :lastName  :DESC})
@@ -134,8 +143,10 @@
                            :name    {:eq "foo"}})
 
 (defn- to-eql-param [namespaces selection-tree [arg value]]
+  (when (= arg :set) (trace>> :eql-pqram (into {} (eqlify-set-param namespaces selection-tree value))))
   (case arg
     :orderBy [:order-by (eqlify-order-by-param namespaces selection-tree value)]
+    :set  [:set (into {} (eqlify-set-param namespaces selection-tree value))]
     :where (when-let [pred (seq (eqlify-where-predicate namespaces selection-tree value))]
              [:where pred])
     :groupBy [:group-by (eqlify-group-by-param namespaces selection-tree value)]

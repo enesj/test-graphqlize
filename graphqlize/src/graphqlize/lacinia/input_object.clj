@@ -50,7 +50,6 @@
   {(:attr.ident/camel-case attr-md) {:type :OrderBy}})
 
 (defn- lacina-field-type [attr-md]
-  (trace>> :attr-md attr-md)
   {(:attr.ident/camel-case attr-md) {:type (l-type/lacinia-type (:attr/type attr-md))}})
 
 
@@ -69,7 +68,6 @@
   (let [entity-name                (name (:entity.ident/pascal-case entity-meta-data))
         attr-idents                (heql-md/attr-idents entity-meta-data)
         predicate-type             (keyword (str entity-name "Predicate"))
-        set-type                   (keyword (str entity-name "Set"))
         nested-predicate-type      (keyword (str entity-name "PrimitivePredicate"))
         attrs-md                   (map #(heql-md/attr-meta-data heql-meta-data %) attr-idents)
         non-relationship-attrs-md  (filter #(not= :attr.type/ref (:attr/type %)) attrs-md)

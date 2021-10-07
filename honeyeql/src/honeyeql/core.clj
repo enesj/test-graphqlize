@@ -92,7 +92,7 @@
 (defn- eql-ident->hsql-predicate [db-adapter [attr-ident value] alias]
   (let [heql-meta-data (:heql-meta-data db-adapter)
         attr-col-name  (heql-md/attr-column-name heql-meta-data attr-ident)
-        attr-value     (heql-md/coerce-attr-value db-adapter attr-ident value :1)]
+        attr-value     (heql-md/coerce-attr-value db-adapter attr-ident value :cast)]
     [:= (keyword (str (:self alias) "." attr-col-name)) attr-value]))
 
 (defn- eql-ident-key->hsql-predicate [db-adapter eql-ident-key alias]
@@ -110,16 +110,20 @@
 
 (defn- hsql-column
   ([db-adapter attr-ident eql-node]
-   (hsql-column db-adapter attr-ident eql-node false))
+   (hsql-column db-adapter attr-ident eql-node false false))
   ([db-adapter attr-ident eql-node group-by-column]
+   (hsql-column db-adapter attr-ident eql-node group-by-column false))
+  ([db-adapter attr-ident eql-node group-by-column alias]
    (let [heql-meta-data (:heql-meta-data db-adapter)
          attr-md        (heql-md/attr-meta-data heql-meta-data attr-ident)
          attr-col-name  (:attr.column/name attr-md)
          attr-type      (:attr.column.ref/type attr-md)
          {:keys [self]} (:alias eql-node)]
+     (trace>> ::hsql-column [self ".--" attr-col-name])
      (if (and group-by-column (= :attr.column.ref.type/one-to-one attr-type))
        (resolve-group-by-column db-adapter eql-node attr-ident)
-       (keyword (str self "." attr-col-name))))))
+       (if alias (keyword attr-col-name)
+                 (keyword (str self "." attr-col-name)))))))
 
 (defn- order-by-clause [db-adapter eql-node clause]
   (if (keyword? clause)
@@ -127,17 +131,25 @@
     (let [[c t]         clause]
       [(hsql-column db-adapter c eql-node) t])))
 
+(defn- set-clause [db-adapter eql-node clause]
+  ;(trace>> :set-clause [clause (hsql-column db-adapter (first clause) eql-node)])
+  (let [[c t]         clause]
+    [(hsql-column db-adapter c eql-node false true) (heql-md/coerce-attr-value db-adapter c t :cast)]))
+
 (defn- apply-order-by [hsql heql-meta-data clause eql-node]
   (assoc hsql :order-by (map #(order-by-clause heql-meta-data eql-node %) clause)))
+
+(defn- apply-set-by [hsql heql-meta-data clause eql-node]
+  (assoc hsql :set (into {} (mapv #(set-clause heql-meta-data eql-node %) clause))))
 
 (defn- hsql-predicate [db-adapter eql-node clause]
   (let [[op col v1 v2] clause
         hsql-col       (hsql-column db-adapter col eql-node)]
     (case op
-      (:in :not-in) [op hsql-col (map #(heql-md/coerce-attr-value db-adapter col % :2) v1)]
+      (:in :not-in) [op hsql-col (map #(heql-md/coerce-attr-value db-adapter col % :cast) v1)]
       (if v2
-        [op hsql-col (heql-md/coerce-attr-value db-adapter col v1 :3) (heql-md/coerce-attr-value db-adapter col v2 :3)]
-        [op hsql-col (heql-md/coerce-attr-value db-adapter col v1 :4)]))))
+        [op hsql-col (heql-md/coerce-attr-value db-adapter col v1 :cast) (heql-md/coerce-attr-value db-adapter col v2 :cast)]
+        [op hsql-col (heql-md/coerce-attr-value db-adapter col v1 :cast)]))))
 
 (defn- hsql-join-predicate [db-adapter eql-node join-attr-md self-alias]
   (let [heql-meta-data      (:heql-meta-data db-adapter)
@@ -205,10 +217,11 @@
 
 (defn- apply-params [db-adapter hsql eql-node]
   (let [{:keys [limit offset order-by where group-by set values]} (:params eql-node)]
+    (trace>> :set-params (apply-set-by hsql db-adapter set eql-node))
     (cond-> hsql
       limit  (assoc :limit limit)
       offset (assoc :offset offset)
-      set (assoc :set set)
+      set (apply-set-by db-adapter set eql-node)
       values (assoc :values values)
       order-by (apply-order-by db-adapter order-by eql-node)
       where (apply-where db-adapter where eql-node)
@@ -227,6 +240,7 @@
 (defmethod ^{:private true} eql->hsql :non-ident-join [db-adapter heql-meta-data eql-node]
   (let [{:keys [children alias]} eql-node
         first-child-ident        (eql-node->attr-ident (first children))
+
         hsql                     {:from   [[(heql-md/entity-relation-ident heql-meta-data first-child-ident)
                                             (keyword (:self alias))]]
                                   :select (db/select-clause db-adapter heql-meta-data children)}
@@ -286,8 +300,8 @@
 
 (defn- json-value-fn [db-adapter attribute-return-as json-key json-value]
   (if (= :naming-convention/qualified-kebab-case attribute-return-as)
-    (heql-md/coerce-attr-value db-adapter json-key json-value :5)
-    (heql-md/coerce-attr-value db-adapter (first json-key) json-value :5)))
+    (heql-md/coerce-attr-value db-adapter json-key json-value nil)
+    (heql-md/coerce-attr-value db-adapter (first json-key) json-value nil)))
 
 (defn- transform-keys [attribute-return-as return-value]
   (if (= :naming-convention/qualified-kebab-case attribute-return-as)
@@ -434,13 +448,13 @@
                               (enrich-eql-node db-adapter)
                               (trace>> :eql-ast)
                               (eql->hsql db-adapter heql-meta-data)
-                              (trace>> :hsql11)
+                              (trace>> :hsql1)
                               (#(set/rename-keys % {:from :update}))
                               (#(dissoc % :select))
                               (#(assoc % :returning [:*]))
                               (#(update-in % [:update] first))
-                              (#(update-in % [:set] (fn [x] (hyphenate x))))
-                              (trace>> :hsql21)
+                              ;(#(update-in % [:set] (fn [x] (hyphenate x))))
+                              (trace>> :hsql22)
                               (db/to-sql db-adapter)
                               (trace>> :sql)
                               (db/query db-adapter))
