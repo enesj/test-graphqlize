@@ -17,9 +17,11 @@
 (defn- hql-resolver [db-adapter heql-query-fn]
   ^{:tag lacinia-resolve/ResolverResult}
   (fn [context args _]
+    ;(trace>> :resolver1 [(executor/selections-tree context) args])
     (let [sel-tree (executor/selections-tree context)
           eql      (-> (:heql-meta-data db-adapter)
                        heql-md/namespace-idents
+                       ;(trace> :resolver)
                        (l-eql/generate sel-tree args))]
       (trace>> :lacinia-resolver {:selections-tree sel-tree
                                   :args            args

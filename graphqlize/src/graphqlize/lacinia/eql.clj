@@ -44,13 +44,12 @@
                 keyword)])) param))
 
 (defn- eqlify-set-param [namespaces selection-tree param]
-  (trace>> :param [param (eql-root-attr-ns namespaces selection-tree)])
   (mapv (fn [[k v]]
           (let [root-ns (eql-root-attr-ns namespaces selection-tree)]
             [(->> (name k)
                inf/hyphenate
                (keyword root-ns))
-             (name v)])) param))
+             v])) param))
 
 #_(eqlify-order-by-param [:public] {:City/city [nil]}
                          {:firstName :ASC
@@ -153,6 +152,7 @@
     [arg value]))
 
 (defn- parameters [namespaces selection-tree args]
+  (trace>> :params args)
   (->> (filter (fn [[k _]]
                  (reserved-args k)) args)
        (map #(to-eql-param namespaces selection-tree %))
