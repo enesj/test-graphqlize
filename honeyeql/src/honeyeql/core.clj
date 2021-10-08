@@ -119,7 +119,6 @@
          attr-col-name  (:attr.column/name attr-md)
          attr-type      (:attr.column.ref/type attr-md)
          {:keys [self]} (:alias eql-node)]
-     (trace>> ::hsql-column [self ".--" attr-col-name])
      (if (and group-by-column (= :attr.column.ref.type/one-to-one attr-type))
        (resolve-group-by-column db-adapter eql-node attr-ident)
        (if alias (keyword attr-col-name)
@@ -136,11 +135,20 @@
   (let [[c t]         clause]
     [(hsql-column db-adapter c eql-node false true) (heql-md/coerce-attr-value db-adapter c t :cast)]))
 
+(defn- values-clause [db-adapter eql-node clause]
+  (trace>> ::values-clause
+    (let [[c t] clause]
+       [(hsql-column db-adapter c eql-node false true) (heql-md/coerce-attr-value db-adapter c t :cast)])))
+
+
 (defn- apply-order-by [hsql heql-meta-data clause eql-node]
   (assoc hsql :order-by (map #(order-by-clause heql-meta-data eql-node %) clause)))
 
-(defn- apply-set-by [hsql heql-meta-data clause eql-node]
+(defn- apply-set [hsql heql-meta-data clause eql-node]
   (assoc hsql :set (into {} (mapv #(set-clause heql-meta-data eql-node %) clause))))
+
+(defn- apply-values [hsql heql-meta-data clause eql-node]
+  (assoc hsql :values (mapv #(into {} (mapv (fn [x] (values-clause heql-meta-data eql-node x) ) %)) clause)))
 
 (defn- hsql-predicate [db-adapter eql-node clause]
   (let [[op col v1 v2] clause
@@ -217,12 +225,12 @@
 
 (defn- apply-params [db-adapter hsql eql-node]
   (let [{:keys [limit offset order-by where group-by set values]} (:params eql-node)]
-    (trace>> :set-params (apply-set-by hsql db-adapter set eql-node))
+    (trace>> :values-params (apply-values hsql db-adapter values eql-node))
     (cond-> hsql
       limit  (assoc :limit limit)
       offset (assoc :offset offset)
-      set (apply-set-by db-adapter set eql-node)
-      values (assoc :values values)
+      set (apply-set db-adapter set eql-node)
+      values (apply-values db-adapter values eql-node)
       order-by (apply-order-by db-adapter order-by eql-node)
       where (apply-where db-adapter where eql-node)
       group-by (apply-group-by db-adapter group-by eql-node)

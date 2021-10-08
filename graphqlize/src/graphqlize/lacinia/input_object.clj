@@ -80,24 +80,25 @@
     ;                 (first (map update-field non-relationship-attrs-md))])
     {(keyword (str entity-name "OrderBy")) {:fields (apply merge (map order-by-field non-relationship-attrs-md))}
      (keyword (str entity-name "Set"))     {:fields (apply merge (map lacina-field-type non-relationship-attrs-md))}
-     (keyword (str entity-name "Values"))     {:fields (apply merge (map lacina-field-type non-relationship-attrs-md))}
+     (keyword (str entity-name "Values"))  {:fields (apply merge (map lacina-field-type non-relationship-attrs-md))}
      predicate-type                        {:fields (apply merge
-                                                           (concat
-                                                            [{:and {:type (list 'list (list 'non-null predicate-type))}
-                                                              :or  {:type (list 'list (list 'non-null predicate-type))}
-                                                              :not {:type predicate-type}}
-                                                             (when have-predicate
-                                                               {:have {:type have-predicate}})]
-                                                            (map #(where-predicate-field heql-meta-data %) attrs-md)))}
+                                                      (concat
+                                                        [{:and {:type (list 'list (list 'non-null predicate-type))}
+                                                          :or  {:type (list 'list (list 'non-null predicate-type))}
+                                                          :not {:type predicate-type}}
+                                                         (when have-predicate
+                                                           {:have {:type have-predicate}})]
+                                                        (map #(where-predicate-field heql-meta-data %) attrs-md)))}
      nested-predicate-type                 {:fields (apply merge
-                                                           (cons
-                                                            {:and {:type (list 'list (list 'non-null nested-predicate-type))}
-                                                             :or  {:type (list 'list (list 'non-null nested-predicate-type))}
-                                                             :not {:type nested-predicate-type}}
-                                                            (map #(where-predicate-field heql-meta-data %) non-relationship-attrs-md)))}}))
+                                                      (cons
+                                                        {:and {:type (list 'list (list 'non-null nested-predicate-type))}
+                                                         :or  {:type (list 'list (list 'non-null nested-predicate-type))}
+                                                         :not {:type nested-predicate-type}}
+                                                        (map #(where-predicate-field heql-meta-data %) non-relationship-attrs-md)))}}))
 
 (defn generate [heql-meta-data]
   (->> (heql-md/entities heql-meta-data)
        (map #(entity-meta-data->input-object heql-meta-data %))
        (cons comparison-input-objects)
        (apply merge)))
+

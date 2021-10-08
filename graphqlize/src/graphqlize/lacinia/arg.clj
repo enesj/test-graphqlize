@@ -49,10 +49,12 @@
                    keyword)}})
 
 (defn- values-insert-arg [e-md]
-  {:values {:type (-> (:entity.ident/pascal-case e-md)
-                    name
-                    (str "Values")
-                    keyword)}})
+  {:values {:type (list 'list
+                    (list 'non-null
+                      (-> (:entity.ident/pascal-case e-md)
+                        name
+                        (str "Values")
+                        keyword)))}})
 
 (defn many-field-args [heql-meta-data entity-meta-data]
   (let [default-args (merge pagination-args
