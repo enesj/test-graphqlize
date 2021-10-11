@@ -10,7 +10,8 @@
         mount/mount                      {:mvn/version "0.1.16"}}
 
  :aliases
- {:run-m {:main-opts ["-m" "app.server"]}
+ {:dev {:extra-paths ["dev"]}
+  :run-m {:main-opts ["-m" "app.server"]}
   :run-x {:ns-default app.test-graphqlize
           :exec-fn greet
           :exec-args {:name "Clojure"}}
