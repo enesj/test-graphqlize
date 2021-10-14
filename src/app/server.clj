@@ -14,19 +14,19 @@
                                       :server-name       "localhost"
                                       :port-number       5432
                                       :maximum-pool-size 1
-                                      :username          "postgres"
+                                      :username          "enesj"
                                       :password          "610Pg"}))
 
 
 (def lacinia-schema (l/schema db-spec))
 
 (defn service [] (->
-                   (lacinia-pedestal/service-map lacintapuiia-schema {:graphiql true
-                                                                      :port     8080})
+                   (lacinia-pedestal/service-map lacinia-schema {:graphiql true
+                                                                 :port     8080})
                    (assoc ::http/resource-path "/static")
-                   (assoc ::http/allowed-origins (:creds true
-                                                   :allowed-origins ["http://localhost:3000"
-                                                                     "http://localhost:8080"]))))
+                   (assoc ::http/allowed-origins {:creds true
+                                                  :allowed-origins ["http://localhost:3000"
+                                                                    "http://localhost:8080"]})))
 
 (defn serve-gql
   []

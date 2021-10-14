@@ -62,6 +62,25 @@
          questions-text)
        flatten))
 
+
+(def answers
+  (->> (map-indexed
+         (fn [i v]
+           (->> (str/split v #"  ")
+                (#(hash-map :topic-id (Integer. (second %))
+                            :question-id (inc i)
+                            :question-type [:cast (first %) :question-type]
+                            :text (nth % 2)
+                            :answers (->> (drop 4 %)
+                                          (mapv (fn [x]
+                                                  {:question-id (inc i)
+                                                   :text x})))))))
+         questions-text)
+      flatten
+      (mapv  :answers)
+      flatten))
+;
+
 (defn make-sql [entity]
  (-> (insert-into (keyword (inf/singular entity)))
   (values @(resolve (symbol entity)))
