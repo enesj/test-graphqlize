@@ -136,9 +136,9 @@
     [(hsql-column db-adapter c eql-node false true) (heql-md/coerce-attr-value db-adapter c t :cast)]))
 
 (defn- values-clause [db-adapter eql-node clause]
-  (trace>> ::values-clause
-    (let [[c t] clause]
-       [(hsql-column db-adapter c eql-node false true) (heql-md/coerce-attr-value db-adapter c t :cast)])))
+  ;(trace>> ::values-clause)
+  (let [[c t] clause]
+     [(hsql-column db-adapter c eql-node false true) (heql-md/coerce-attr-value db-adapter c t :cast)]))
 
 
 (defn- apply-order-by [hsql heql-meta-data clause eql-node]
@@ -225,7 +225,7 @@
 
 (defn- apply-params [db-adapter hsql eql-node]
   (let [{:keys [limit offset order-by where group-by set values]} (:params eql-node)]
-    (trace>> :values-params (apply-values hsql db-adapter values eql-node))
+    ;(trace>> :values-params (apply-values hsql db-adapter values eql-node))
     (cond-> hsql
       limit  (assoc :limit limit)
       offset (assoc :offset offset)
@@ -383,7 +383,7 @@
         eql-query- (case (:eql/mode heql-config)
                      :eql.mode/lenient (trace>> :transformed-eql (transform-honeyeql-queries eql-query))
                      :eql.mode/strict eql-query)]
-    (trace>> :eql-query [eql-query- ">> :" eql-query- ">> :" (:eql/mode heql-config)])
+    ;(trace>> :eql-query [eql-query- ">> :" eql-query- ">> :" (:eql/mode heql-config)])
     (map  #(transform-keys return-as %)
           (json/read-str (->> (eql/query->ast eql-query-)
                               (trace>> :raw-eql-ast)

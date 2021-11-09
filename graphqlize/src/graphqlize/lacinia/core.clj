@@ -23,9 +23,6 @@
                        heql-md/namespace-idents
                        ;(trace> :resolver)
                        (l-eql/generate sel-tree args))]
-      (trace>> :lacinia-resolver {:selections-tree sel-tree
-                                  :args            args
-                                  :eql eql})
       (try
         (->> (heql-query-fn db-adapter eql)
              lacinia-resolve/resolve-as)

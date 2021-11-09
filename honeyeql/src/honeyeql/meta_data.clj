@@ -5,7 +5,8 @@
             [clojure.set :as set]
             [clojure.string :as string]
             [honeyeql.db-adapter.core :as db]
-            [honeyeql.debug :refer [trace>>]])
+            [honeyeql.debug :refer [trace>>]]
+            [clojure.data.json :as json])
   (:import [java.time OffsetDateTime LocalDateTime LocalDate LocalTime OffsetTime]))
 
 (defn datafied-result-set [db-spec result-set]
@@ -507,10 +508,12 @@
                            (if (and (= :heql.exception/attr-not-found (:type (ex-data ex))))
                              {:attr/type :attr.type/unknown}
                              (throw ex))))]
+    ;(trace>> ::type [(:attr.column/db-type attr-md) (:attr/type attr-md)])
     (case (:attr/type attr-md)
       :attr.type/uuid (coerce uuid? #(java.util.UUID/fromString %) value)
       :attr.type/date (coerce local-date? #(LocalDate/parse %) value)
       :attr.type/time (coerce local-time? #(LocalTime/parse %) value)
+      :attr.type/json (if cast [:cast value :json] value)
       :attr.type/time-with-time-zone (coerce local-time? #(OffsetTime/parse %) value)
       :attr.type/date-time (coerce local-date-time? #(db/coerce db-adapter % :attr.type/date-time) value)
       :attr.type/boolean (coerce boolean? #(db/coerce db-adapter % :attr.type/boolean) value)
