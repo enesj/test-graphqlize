@@ -416,7 +416,7 @@
                               (#(dissoc % :select))
                               (#(assoc % :returning [:*]))
                               (trace>> :hsql2)
-                              (db/to-sql db-adapter)
+                              (db/to-sql- db-adapter)
                               (trace>> :sql)
                               (db/query db-adapter))
                          :bigdec true

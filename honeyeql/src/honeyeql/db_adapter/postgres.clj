@@ -90,6 +90,12 @@
   {:with   [[:rs hql]]
    :from   [[{:select [:*]
               :from   [:rs]} :rs]]
+   :select [(hsql/raw "coalesce (json_agg(\"rs\"), '[]')::character varying as result")]})
+
+(defn- result-set-hql- [hql]
+  {:with   [[:rs hql]]
+   :from   [[{:select [:*]
+              :from   [:rs]} :rs]]
    :select [[[:raw "coalesce (json_agg(\"rs\"), '[]')::character varying as result"]]]})
 
 (defn- hsql-column-name [{:keys [alias function-attribute-ident key]} attr-md]
@@ -105,10 +111,13 @@
                                                          :as   eql-node}]
   (let [{:keys [parent self]} alias
         attr-md               (heql-md/attr-meta-data heql-meta-data attr-ident)
-        select-attr-expr      (case (:attr.column.ref/type attr-md)
-                                :attr.column.ref.type/one-to-one (keyword (str parent "__" self))
-                                (:attr.column.ref.type/one-to-many :attr.column.ref.type/many-to-many) (heql/eql->hsql db-adapter heql-meta-data eql-node)
-                                (hsql-column-name eql-node attr-md))]
+        select-attr-expr (case (:attr.column.ref/type attr-md)
+                           :attr.column.ref.type/one-to-one
+                           (keyword (str parent "__" self))
+                           (:attr.column.ref.type/one-to-many :attr.column.ref.type/many-to-many)
+                           (heql/eql->hsql db-adapter heql-meta-data eql-node)
+                           (hsql-column-name eql-node attr-md))]
+    (trace>> ::select-expr [  eql-node])
     [select-attr-expr (heql/select-clause-alias eql-node)]))
 
 (defn- assoc-one-to-one-hsql-queries [db-adapter heql-meta-data hsql eql-nodes]
@@ -131,7 +140,9 @@
   (to-sql-raw [pg-adapter hsql]
     (hsql/format hsql :quoting :ansi))
   (to-sql [pg-adapter hsql]
-    (sql/format (result-set-hql hsql) :quoting :ansi))
+    (hsql/format (result-set-hql hsql) :quoting :ansi))
+  (to-sql- [pg-adapter hsql]
+    (sql/format (result-set-hql- hsql) :quoting :ansi))
   (query [pg-adapter sql]
          (-> (jdbc/query (:db-spec pg-adapter) sql)
              first

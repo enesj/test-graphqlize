@@ -6,15 +6,15 @@
     [graphqlize.lacinia.core :as l]
     [honeysql.core :as sql]
     [honeysql.helpers :refer :all :as helpers]
-    [mount.core :as mount :refer [defstate]]
-    [vlaaad.reveal :as reveal]))
+    [mount.core :as mount :refer [defstate]]))
+    ;[vlaaad.reveal :as reveal]))
 
 (def db-spec (hikari/make-datasource {:adapter           "postgresql"
                                       :database-name     "assessments"
                                       :server-name       "localhost"
                                       :port-number       5432
                                       :maximum-pool-size 1
-                                      :username          "enesj"
+                                      :username          "postgres"
                                       :password          "610Pg"}))
 
 (def lacinia-schema (l/schema db-spec))
